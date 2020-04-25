@@ -111,7 +111,16 @@ func screenShot() string {
 
 	execute(adb, "shell", "rm", sdcardPath)
 
-	localFileName := "screen_shot/" + fileName
+	dir := "screen_shot"
+	_, err := os.Stat(dir)
+	if err != nil {
+		err := os.Mkdir(dir, os.FileMode(0777))
+		if err != nil {
+			fmt.Printf("mkdir dir failed, dir:%s, err:%s", dir, err.Error())
+		}
+	}
+
+	localFileName := dir + "/" + fileName
 	execute("mv", fileName, localFileName)
 	return localFileName
 }
