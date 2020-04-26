@@ -38,48 +38,77 @@ func main() {
 	//love := point{X: 1300, Y: 1200}
 	//fmt.Println(tap(love))
 
-	flag := true
 	for {
+		commentFlag := false
 		comment := point{X: 1300, Y: 1400}
 		fmt.Println(tap(comment))
 
 		time.Sleep(time.Second * 1)
 
 		for {
-			fileName := screenShot()
+			commentFileName := screenShot()
 
-			file, err := os.Open(fileName)
+			commentFile, err := os.Open(commentFileName)
 			if err != nil {
-				fmt.Printf("read file(%s) failed, err:%s", fileName, err.Error())
+				fmt.Printf("read file(%s) failed, err:%s", commentFileName, err.Error())
 				return
 			}
 
-			img, err := png.Decode(file)
+			commentImg, err := png.Decode(commentFile)
 			if err != nil {
-				file.Close()
-				fmt.Printf("png.decoe file(%s) failed, err:%s", fileName, err.Error())
+				commentFile.Close()
+				fmt.Printf("png.decoe file(%s) failed, err:%s", commentFileName, err.Error())
 				return
 			}
 
 			// 截图实际像素 => 模拟器实际像素 1440x2560
 			// 1358 => 516 比例2.63
 			// 715 => 276 比例 2.59
-			x := 1358
-			for y := 715; y < img.Bounds().Max.Y-183; y++ {
-				red, green, blue := getRGB(img, x, y)
-				if red == 220 && green == 220 && blue == 222 {
-					red, green, blue = getRGB(img, x, y+30)
-					if red == 220 && green == 220 && blue == 222 {
-						flag = false
-						tap(point{x, y})
-						y += 50
-					}
+			commentX := 112
+			for commentY := 675; commentY < commentImg.Bounds().Max.Y-183; commentY++ {
+				commentRed, commentGreen, commentBlue := getRGB(commentImg, commentX, commentY)
+				if commentRed == 255 && commentGreen == 255 && commentBlue == 255 {
+					continue
 				}
-			}
-			file.Close()
 
-			os.Remove(fileName)
-			if flag {
+				commentFlag = false
+				tap(point{commentX, commentY + 15})
+				time.Sleep(time.Second * 1)
+
+				homeFileName := screenShot()
+
+				homeFile, err := os.Open(homeFileName)
+				if err != nil {
+					fmt.Printf("read file(%s) failed, err:%s", homeFileName, err.Error())
+					return
+				}
+
+				homeImg, err := png.Decode(homeFile)
+				if err != nil {
+					homeFile.Close()
+					fmt.Printf("png.decoe file(%s) failed, err:%s", homeFileName, err.Error())
+					return
+				}
+
+				followX := 730
+				followY := 656
+				red, green, blue := getRGB(homeImg, followX, followY) //找到关注按钮
+				if red == 254 && green == 44 && blue == 85 {
+					tap(point{followX, followY}) //点击关注
+
+					backX := 85
+					backY := 178
+					tap(point{backX, backY}) //点击返回
+					time.Sleep(time.Second)
+				}
+
+				os.Remove(homeFileName)
+				commentY += 130
+			}
+			commentFile.Close()
+
+			os.Remove(commentFileName)
+			if commentFlag {
 				break
 			}
 			swipe(100, 1730, 100, 715)
@@ -107,7 +136,7 @@ func connect(str string) string {
 }
 
 func screenShot() string {
-	fileName := fmt.Sprintf("%d.png", time.Now().Unix())
+	fileName := fmt.Sprintf("%d.png", time.Now().UnixNano())
 	sdcardPath := fmt.Sprintf("/sdcard/screen_shot/%s", fileName)
 	result := execute(adb, "shell", "screencap", "-p", sdcardPath)
 	fmt.Println("screencap, result:", result)
